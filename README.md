@@ -9,8 +9,6 @@ Aplicativo React Native com Expo para traduções rápidas entre idiomas, histó
 - Histórico SQLite com pesquisa, reuso e retenção de até 100 itens.
 - Favoritos independentes do histórico e coleções locais.
 - Pronúncia do texto original e traduzido com `expo-speech`.
-- Tema claro, escuro ou conforme o sistema; exportação e importação JSON validadas.
-- Migração única do histórico/cache da versão anterior em AsyncStorage para SQLite.
 
 Favoritos e histórico funcionam offline. A tradução de novos textos exige conexão com a internet.
 
@@ -25,7 +23,7 @@ npm ci
 npm start
 ```
 
-Use Expo Go compatível com o SDK 57 ou um development build. Para compilar e abrir um emulador/dispositivo conectado:
+Use Expo Go compatível com o SDK 58 ou um development build. Para compilar e abrir um emulador/dispositivo conectado:
 
 ```sh
 npm run android
@@ -33,17 +31,6 @@ npm run ios
 ```
 
 O comando iOS só pode ser executado em macOS com Xcode. `npx expo export --platform android` valida o bundle JavaScript, mas não substitui uma compilação nativa nem um teste em dispositivo.
-
-## Verificações
-
-```sh
-npm run typecheck
-npm run lint
-npm test
-npx expo install --check
-```
-
-Os testes automatizados exercitam o adapter MyMemory: formato da requisição, parsing de sucesso, entrada inválida, idiomas inválidos, limite, resposta inválida e falha de rede. A persistência SQLite, permissões e áudio ainda precisam de validação manual em Android e iOS.
 
 ## Tradução, cotas e privacidade
 
@@ -54,8 +41,6 @@ O texto original e o par de idiomas são enviados ao provedor por HTTPS para rea
 ## Dados locais
 
 SQLite contém histórico, cache, snapshots de favoritos, coleções, associações e preferências. Os favoritos são snapshots independentes; apagar o histórico não apaga frases favoritas. Apagar uma coleção remove apenas a organização e mantém os favoritos. O histórico mantém até 100 traduções recentes; o cache mantém até 500 pares.
-
-Na primeira abertura após atualizar a versão que usava AsyncStorage, o histórico/cache legado é validado e copiado para SQLite em uma transação; as chaves antigas só são removidas após a migração concluída. A exportação cria JSON pelo menu de compartilhamento. A importação valida conteúdo e quantidade, mostra a prévia e requer confirmação para mesclar ou substituir.
 
 ## Voz e limitações
 
