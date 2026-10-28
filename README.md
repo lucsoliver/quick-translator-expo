@@ -47,7 +47,7 @@ Os testes automatizados exercitam o adapter MyMemory: formato da requisição, p
 
 ## Tradução, cotas e privacidade
 
-Verificado em **28 de outubro de 2026** na documentação oficial do MyMemory. O app chama `https://api.mymemory.translated.net/get`, passando `q` (até 500 bytes) e `langpair`; não envia email, chave, histórico nem favoritos. A cota anônima documentada é de 5.000 caracteres por dia. A documentação descreve até 50.000 por dia quando um email válido é informado; o app não coleta nem envia email. O uso não é ilimitado e o provedor pode variar disponibilidade, cobertura, qualidade e correspondência regional do português. [Especificação da API](https://mymemory.translated.net/doc/spec.php) · [Limites de uso](https://mymemory.translated.net/doc/usagelimits.php) · [Termos do serviço](https://mymemory.translated.net/terms-and-conditions).
+Verificado na documentação oficial do MyMemory. O app chama `https://api.mymemory.translated.net/get`, passando `q` (até 500 bytes) e `langpair`; não envia email, chave, histórico nem favoritos. A cota anônima documentada é de 5.000 caracteres por dia. A documentação descreve até 50.000 por dia quando um email válido é informado; o app não coleta nem envia email. O uso não é ilimitado e o provedor pode variar disponibilidade, cobertura, qualidade e correspondência regional do português. [Especificação da API](https://mymemory.translated.net/doc/spec.php) · [Limites de uso](https://mymemory.translated.net/doc/usagelimits.php) · [Termos do serviço](https://mymemory.translated.net/terms-and-conditions).
 
 O texto original e o par de idiomas são enviados ao provedor por HTTPS para realizar a tradução. Revise a política e os termos do MyMemory antes de enviar conteúdo sensível. O app não registra texto em logs e não oferece tradução local de textos novos.
 
@@ -60,16 +60,3 @@ Na primeira abertura após atualizar a versão que usava AsyncStorage, o histór
 ## Voz e limitações
 
 `expo-speech` usa as vozes instaladas no sistema; disponibilidade e pronúncia variam por plataforma e idioma. Em dispositivos iOS, o modo silencioso pode impedir o áudio. O app não solicita microfone, câmera, localização ou contatos. Não há login, modelo de tradução offline, sincronização, nem integração com Galaxy Fit3.
-
-## Checklist de validação manual
-
-Ainda não executado em dispositivo/emulador. Ao validar Android e iOS, conferir:
-
-- [ ] Teclado e campo de texto em tela pequena, fontes ampliadas e áreas seguras.
-- [ ] Tema claro/escuro/sistema e leitor de tela (TalkBack/VoiceOver).
-- [ ] Tradução sem conexão, resposta inválida e limite do provider.
-- [ ] Voz ausente, interrupção de fala e modo silencioso no iOS.
-- [ ] Persistência após reinício, atualização/migração e consulta offline.
-- [ ] Exportação, importação inválida, mesclagem/substituição e coleções.
-
-Capturas Android/iOS serão adicionadas após a validação manual nesses dispositivos; o ambiente usado para esta implementação não forneceu emulador ou dispositivo para produzir screenshots reais.
