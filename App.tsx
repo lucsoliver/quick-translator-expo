@@ -1,74 +1,1326 @@
-import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
-import { ActivityIndicator, Alert, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, SafeAreaView, ScrollView, Share, StyleSheet, Text, TextInput, useColorScheme, View } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import * as Clipboard from 'expo-clipboard';
-import * as Speech from 'expo-speech';
-import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
-import * as Linking from 'expo-linking';
-import { LANGUAGE_OPTIONS, MAX_INPUT_BYTES, MAX_INPUT_LENGTH, languageByCode } from './src/constants/languages';
-import { useTranslation } from './src/hooks/useTranslation';
-import { addFavoriteToCollection, clearHistory, createCollection, deleteHistoryItem, exportData, getCollectionItems, getCollections, getFavorites, getHistory, getPreference, importData, isFavorite, removeCollection, renameCollection, setPreference, toggleFavorite } from './src/services/storage/translationStore';
-import type { LanguageOption, TranslationHistoryItem } from './src/types/translation';
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  TextInput,
+  useColorScheme,
+  View,
+} from "react-native";
+import { StatusBar } from "expo-status-bar";
+import * as Clipboard from "expo-clipboard";
+import * as Speech from "expo-speech";
+import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
+import * as Linking from "expo-linking";
+import {
+  LANGUAGE_OPTIONS,
+  MAX_INPUT_BYTES,
+  MAX_INPUT_LENGTH,
+  languageByCode,
+} from "./src/constants/languages";
+import { useTranslation } from "./src/hooks/useTranslation";
+import {
+  addFavoriteToCollection,
+  clearHistory,
+  createCollection,
+  deleteHistoryItem,
+  exportData,
+  getCollectionItems,
+  getCollections,
+  getFavorites,
+  getHistory,
+  getPreference,
+  importData,
+  isFavorite,
+  removeCollection,
+  renameCollection,
+  setPreference,
+  toggleFavorite,
+} from "./src/services/storage/translationStore";
+import type {
+  LanguageOption,
+  TranslationHistoryItem,
+} from "./src/types/translation";
 
-type Tab = 'translate' | 'history' | 'favorites' | 'settings' | 'about';
-const tabs: { id: Tab; label: string }[] = [{ id: 'translate', label: 'Traduzir' }, { id: 'history', label: 'Histórico' }, { id: 'favorites', label: 'Favoritos' }, { id: 'settings', label: 'Ajustes' }];
-const palette = { light: { bg: '#F4F6F3', card: '#FFFFFF', text: '#172A24', muted: '#6C7D75', accent: '#156B53', border: '#DCE5DF', input: '#F9FBF9', danger: '#A43D32' }, dark: { bg: '#111A17', card: '#1B2923', text: '#ECF5EF', muted: '#A3B4AA', accent: '#75C5A1', border: '#34463D', input: '#22332B', danger: '#FF9B8B' } };
+type Tab = "translate" | "history" | "favorites" | "settings" | "about";
+const tabs: { id: Tab; label: string }[] = [
+  { id: "translate", label: "Traduzir" },
+  { id: "history", label: "Histórico" },
+  { id: "favorites", label: "Favoritos" },
+  { id: "settings", label: "Ajustes" },
+];
+const palette = {
+  light: {
+    bg: "#F4F6F3",
+    card: "#FFFFFF",
+    text: "#17242a",
+    muted: "#606770",
+    accent: "#12276b",
+    border: "#dce2e5",
+    input: "#f9fafb",
+    danger: "#A43D32",
+  },
+  dark: {
+    bg: "#11161a",
+    card: "#1b2129",
+    text: "#ecf0f5",
+    muted: "#a3adb4",
+    accent: "#7595c5",
+    border: "#343b46",
+    input: "#222b33",
+    danger: "#FF9B8B",
+  },
+};
 
 export default function App() {
-  const { translate, history, isLoading, error, unsaved, retrySave, clearError, refreshHistory } = useTranslation();
-  const [tab, setTab] = useState<Tab>('translate');
-  const [source, setSource] = useState('pt'); const [target, setTarget] = useState('en');
-  const [text, setText] = useState(''); const [result, setResult] = useState<TranslationHistoryItem | null>(null);
-  const systemScheme = useColorScheme(); const [theme, setTheme] = useState<'system' | 'light' | 'dark'>('system'); const dark = theme === 'dark' || (theme === 'system' && systemScheme === 'dark'); const c = dark ? palette.dark : palette.light;
-  const [languageSide, setLanguageSide] = useState<'source' | 'target' | null>(null); const [languageSearch, setLanguageSearch] = useState('');
-  const [query, setQuery] = useState(''); const [items, setItems] = useState<TranslationHistoryItem[]>([]); const [favorite, setFavorite] = useState(false);
-  const [collections, setCollections] = useState<{ id: string; name: string }[]>([]); const [collectionItems, setCollectionItems] = useState<TranslationHistoryItem[]>([]); const [activeCollection, setActiveCollection] = useState<{ id: string; name: string } | null>(null);
-  const [dialog, setDialog] = useState<'collection' | null>(null); const [editingCollection, setEditingCollection] = useState<string | null>(null); const [collectionName, setCollectionName] = useState(''); const [pendingImport, setPendingImport] = useState<string | null>(null);
+  const {
+    translate,
+    history,
+    isLoading,
+    error,
+    unsaved,
+    retrySave,
+    clearError,
+    refreshHistory,
+  } = useTranslation();
+  const [tab, setTab] = useState<Tab>("translate");
+  const [source, setSource] = useState("pt");
+  const [target, setTarget] = useState("en");
+  const [text, setText] = useState("");
+  const [result, setResult] = useState<TranslationHistoryItem | null>(null);
+  const systemScheme = useColorScheme();
+  const [theme, setTheme] = useState<"system" | "light" | "dark">("system");
+  const dark =
+    theme === "dark" || (theme === "system" && systemScheme === "dark");
+  const c = dark ? palette.dark : palette.light;
+  const [languageSide, setLanguageSide] = useState<"source" | "target" | null>(
+    null,
+  );
+  const [languageSearch, setLanguageSearch] = useState("");
+  const [query, setQuery] = useState("");
+  const [items, setItems] = useState<TranslationHistoryItem[]>([]);
+  const [favorite, setFavorite] = useState(false);
+  const [collections, setCollections] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const [collectionItems, setCollectionItems] = useState<
+    TranslationHistoryItem[]
+  >([]);
+  const [activeCollection, setActiveCollection] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [dialog, setDialog] = useState<"collection" | null>(null);
+  const [editingCollection, setEditingCollection] = useState<string | null>(
+    null,
+  );
+  const [collectionName, setCollectionName] = useState("");
+  const [pendingImport, setPendingImport] = useState<string | null>(null);
 
-  useEffect(() => { void (async () => { try { setSource(await getPreference('source') ?? 'pt'); setTarget(await getPreference('target') ?? 'en'); const savedTheme = await getPreference('theme'); if (savedTheme === 'dark' || savedTheme === 'light' || savedTheme === 'system') setTheme(savedTheme); setCollections(await getCollections()); } catch { Alert.alert('Armazenamento indisponível', 'Não foi possível carregar suas preferências locais.'); } })(); }, []);
-  useEffect(() => { void (async () => { try { const list = tab === 'favorites' ? await getFavorites(query) : await getHistory(query); setItems(list); } catch { Alert.alert('Erro ao abrir dados', 'O armazenamento local não pôde ser consultado.'); } })(); }, [tab, query, history]);
-  const chooseLanguage = (language: LanguageOption) => { if (languageSide === 'source') { if (language.code === target) setTarget(source); setSource(language.code); void setPreference('source', language.code); } else { if (language.code === source) setSource(target); setTarget(language.code); void setPreference('target', language.code); } setLanguageSide(null); setLanguageSearch(''); setResult(null); };
-  const runTranslation = async () => { Keyboard.dismiss(); const item = await translate(text, source, target); if (item) { setResult(item); setText(item.sourceText); setFavorite(await isFavorite(item.id).catch(() => false)); } };
-  const speak = async (value: string, language: string) => { try { await Speech.stop(); Speech.speak(value, { language: languageByCode(language)?.speechLocale, onError: () => Alert.alert('Voz indisponível', 'Este dispositivo não oferece uma voz compatível para este idioma.') }); } catch { Alert.alert('Voz indisponível', 'Não foi possível iniciar a pronúncia.'); } };
-  const copy = async (value: string) => { try { await Clipboard.setStringAsync(value); Alert.alert('Copiado', 'Texto copiado para a área de transferência.'); } catch { Alert.alert('Falha ao copiar', 'Tente novamente.'); } };
-  const openTranslation = (item: TranslationHistoryItem) => { setSource(item.sourceLanguage); setTarget(item.targetLanguage); setText(item.sourceText); setResult(item); void isFavorite(item.id).then(setFavorite).catch(() => setFavorite(false)); setTab('translate'); };
-  const saveFavorite = async () => { if (!result) return; try { setFavorite(await toggleFavorite(result)); } catch { Alert.alert('Falha ao salvar', 'Não foi possível atualizar os favoritos.'); } };
-  const swap = () => { const oldSource = source; setSource(target); setTarget(oldSource); void setPreference('source', target); void setPreference('target', oldSource); setText(result?.translatedText ?? text); setResult(null); };
+  useEffect(() => {
+    void (async () => {
+      try {
+        setSource((await getPreference("source")) ?? "pt");
+        setTarget((await getPreference("target")) ?? "en");
+        const savedTheme = await getPreference("theme");
+        if (
+          savedTheme === "dark" ||
+          savedTheme === "light" ||
+          savedTheme === "system"
+        )
+          setTheme(savedTheme);
+        setCollections(await getCollections());
+      } catch {
+        Alert.alert(
+          "Armazenamento indisponível",
+          "Não foi possível carregar suas preferências locais.",
+        );
+      }
+    })();
+  }, []);
+  useEffect(() => {
+    void (async () => {
+      try {
+        const list =
+          tab === "favorites"
+            ? await getFavorites(query)
+            : await getHistory(query);
+        setItems(list);
+      } catch {
+        Alert.alert(
+          "Erro ao abrir dados",
+          "O armazenamento local não pôde ser consultado.",
+        );
+      }
+    })();
+  }, [tab, query, history]);
+  const chooseLanguage = (language: LanguageOption) => {
+    if (languageSide === "source") {
+      if (language.code === target) setTarget(source);
+      setSource(language.code);
+      void setPreference("source", language.code);
+    } else {
+      if (language.code === source) setSource(target);
+      setTarget(language.code);
+      void setPreference("target", language.code);
+    }
+    setLanguageSide(null);
+    setLanguageSearch("");
+    setResult(null);
+  };
+  const runTranslation = async () => {
+    Keyboard.dismiss();
+    const item = await translate(text, source, target);
+    if (item) {
+      setResult(item);
+      setText(item.sourceText);
+      setFavorite(await isFavorite(item.id).catch(() => false));
+    }
+  };
+  const speak = async (value: string, language: string) => {
+    try {
+      await Speech.stop();
+      Speech.speak(value, {
+        language: languageByCode(language)?.speechLocale,
+        onError: () =>
+          Alert.alert(
+            "Voz indisponível",
+            "Este dispositivo não oferece uma voz compatível para este idioma.",
+          ),
+      });
+    } catch {
+      Alert.alert("Voz indisponível", "Não foi possível iniciar a pronúncia.");
+    }
+  };
+  const copy = async (value: string) => {
+    try {
+      await Clipboard.setStringAsync(value);
+      Alert.alert("Copiado", "Texto copiado para a área de transferência.");
+    } catch {
+      Alert.alert("Falha ao copiar", "Tente novamente.");
+    }
+  };
+  const openTranslation = (item: TranslationHistoryItem) => {
+    setSource(item.sourceLanguage);
+    setTarget(item.targetLanguage);
+    setText(item.sourceText);
+    setResult(item);
+    void isFavorite(item.id)
+      .then(setFavorite)
+      .catch(() => setFavorite(false));
+    setTab("translate");
+  };
+  const saveFavorite = async () => {
+    if (!result) return;
+    try {
+      setFavorite(await toggleFavorite(result));
+    } catch {
+      Alert.alert(
+        "Falha ao salvar",
+        "Não foi possível atualizar os favoritos.",
+      );
+    }
+  };
+  const swap = () => {
+    const oldSource = source;
+    setSource(target);
+    setTarget(oldSource);
+    void setPreference("source", target);
+    void setPreference("target", oldSource);
+    setText(result?.translatedText ?? text);
+    setResult(null);
+  };
   const refreshCollections = async () => setCollections(await getCollections());
-  const makeCollection = async () => { const name = collectionName.trim(); if (!name) return; try { if (editingCollection) await renameCollection(editingCollection, name); else await createCollection(name); await refreshCollections(); setDialog(null); setCollectionName(''); setEditingCollection(null); } catch { Alert.alert('Nome não disponível', 'Use um nome diferente para a coleção.'); } };
-  const editCollection = (collection: { id: string; name: string }) => { setEditingCollection(collection.id); setCollectionName(collection.name); setDialog('collection'); };
-  const openCollection = async (collection: { id: string; name: string }) => { try { setActiveCollection(collection); setCollectionItems(await getCollectionItems(collection.id)); } catch { Alert.alert('Falha ao abrir coleção', 'Tente novamente.'); } };
-  const confirmCollectionDelete = (collection: { id: string; name: string }) => Alert.alert('Excluir coleção?', `“${collection.name}” será removida. As frases favoritas continuarão salvas.`, [{ text: 'Cancelar', style: 'cancel' }, { text: 'Excluir', style: 'destructive', onPress: () => { void removeCollection(collection.id).then(refreshCollections); setActiveCollection(null); } }]);
-  const addToCollection = async (item: TranslationHistoryItem) => { if (!collections.length) { Alert.alert('Crie uma coleção primeiro', 'Use “Nova coleção” para organizar frases salvas.'); return; } Alert.alert('Adicionar à coleção', 'Escolha uma coleção', [...collections.slice(0, 3).map((collection) => ({ text: collection.name, onPress: () => { void addFavoriteToCollection(collection.id, item.id).then(() => Alert.alert('Salvo', `Frase adicionada a ${collection.name}.`)); } })), { text: 'Cancelar', style: 'cancel' }]); };
-  const exportLocal = async () => { try { const json = await exportData(); const path = `${FileSystem.cacheDirectory}quick-translator-export.json`; await FileSystem.writeAsStringAsync(path, json, { encoding: FileSystem.EncodingType.UTF8 }); if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(path, { mimeType: 'application/json', dialogTitle: 'Exportar dados do Quick Translator' }); else await Share.share({ message: json }); } catch { Alert.alert('Exportação falhou', 'Não foi possível preparar o arquivo JSON.'); } };
-  const pickImport = async () => { try { const picked = await DocumentPicker.getDocumentAsync({ type: ['application/json', 'text/json'], copyToCacheDirectory: true }); if (picked.canceled) return; const json = await FileSystem.readAsStringAsync(picked.assets[0].uri); const parsed = JSON.parse(json) as { history?: unknown[]; favorites?: unknown[] }; if (!Array.isArray(parsed.history) || !Array.isArray(parsed.favorites)) throw new Error('invalid'); setPendingImport(json); Alert.alert('Prévia da importação', `${parsed.history.length} itens de histórico e ${parsed.favorites.length} favoritos.`, [{ text: 'Cancelar', style: 'cancel', onPress: () => setPendingImport(null) }, { text: 'Mesclar', onPress: () => void applyImport(false) }, { text: 'Substituir dados', style: 'destructive', onPress: () => void applyImport(true) }]); } catch { setPendingImport(null); Alert.alert('Arquivo inválido', 'Selecione um JSON exportado pelo Quick Translator.'); } };
-  const applyImport = async (replace: boolean) => { if (!pendingImport) return; try { await importData(pendingImport, replace); setPendingImport(null); await refreshHistory(); await refreshCollections(); Alert.alert('Importação concluída', 'Os dados locais foram atualizados.'); } catch (cause) { setPendingImport(null); Alert.alert('Importação não realizada', cause instanceof Error ? cause.message : 'Arquivo inválido.'); } };
-  const clearAllHistory = () => Alert.alert('Apagar histórico?', 'Os favoritos são snapshots independentes e continuarão salvos.', [{ text: 'Cancelar', style: 'cancel' }, { text: 'Apagar', style: 'destructive', onPress: () => { void clearHistory().then(() => refreshHistory()); } }]);
+  const makeCollection = async () => {
+    const name = collectionName.trim();
+    if (!name) return;
+    try {
+      if (editingCollection) await renameCollection(editingCollection, name);
+      else await createCollection(name);
+      await refreshCollections();
+      setDialog(null);
+      setCollectionName("");
+      setEditingCollection(null);
+    } catch {
+      Alert.alert(
+        "Nome não disponível",
+        "Use um nome diferente para a coleção.",
+      );
+    }
+  };
+  const editCollection = (collection: { id: string; name: string }) => {
+    setEditingCollection(collection.id);
+    setCollectionName(collection.name);
+    setDialog("collection");
+  };
+  const openCollection = async (collection: { id: string; name: string }) => {
+    try {
+      setActiveCollection(collection);
+      setCollectionItems(await getCollectionItems(collection.id));
+    } catch {
+      Alert.alert("Falha ao abrir coleção", "Tente novamente.");
+    }
+  };
+  const confirmCollectionDelete = (collection: { id: string; name: string }) =>
+    Alert.alert(
+      "Excluir coleção?",
+      `“${collection.name}” será removida. As frases favoritas continuarão salvas.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Excluir",
+          style: "destructive",
+          onPress: () => {
+            void removeCollection(collection.id).then(refreshCollections);
+            setActiveCollection(null);
+          },
+        },
+      ],
+    );
+  const addToCollection = async (item: TranslationHistoryItem) => {
+    if (!collections.length) {
+      Alert.alert(
+        "Crie uma coleção primeiro",
+        "Use “Nova coleção” para organizar frases salvas.",
+      );
+      return;
+    }
+    Alert.alert("Adicionar à coleção", "Escolha uma coleção", [
+      ...collections.slice(0, 3).map((collection) => ({
+        text: collection.name,
+        onPress: () => {
+          void addFavoriteToCollection(collection.id, item.id).then(() =>
+            Alert.alert("Salvo", `Frase adicionada a ${collection.name}.`),
+          );
+        },
+      })),
+      { text: "Cancelar", style: "cancel" },
+    ]);
+  };
+  const exportLocal = async () => {
+    try {
+      const json = await exportData();
+      const path = `${FileSystem.cacheDirectory}quick-translator-export.json`;
+      await FileSystem.writeAsStringAsync(path, json, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+      if (await Sharing.isAvailableAsync())
+        await Sharing.shareAsync(path, {
+          mimeType: "application/json",
+          dialogTitle: "Exportar dados do Quick Translator",
+        });
+      else await Share.share({ message: json });
+    } catch {
+      Alert.alert(
+        "Exportação falhou",
+        "Não foi possível preparar o arquivo JSON.",
+      );
+    }
+  };
+  const pickImport = async () => {
+    try {
+      const picked = await DocumentPicker.getDocumentAsync({
+        type: ["application/json", "text/json"],
+        copyToCacheDirectory: true,
+      });
+      if (picked.canceled) return;
+      const json = await FileSystem.readAsStringAsync(picked.assets[0].uri);
+      const parsed = JSON.parse(json) as {
+        history?: unknown[];
+        favorites?: unknown[];
+      };
+      if (!Array.isArray(parsed.history) || !Array.isArray(parsed.favorites))
+        throw new Error("invalid");
+      setPendingImport(json);
+      Alert.alert(
+        "Prévia da importação",
+        `${parsed.history.length} itens de histórico e ${parsed.favorites.length} favoritos.`,
+        [
+          {
+            text: "Cancelar",
+            style: "cancel",
+            onPress: () => setPendingImport(null),
+          },
+          { text: "Mesclar", onPress: () => void applyImport(false) },
+          {
+            text: "Substituir dados",
+            style: "destructive",
+            onPress: () => void applyImport(true),
+          },
+        ],
+      );
+    } catch {
+      setPendingImport(null);
+      Alert.alert(
+        "Arquivo inválido",
+        "Selecione um JSON exportado pelo Quick Translator.",
+      );
+    }
+  };
+  const applyImport = async (replace: boolean) => {
+    if (!pendingImport) return;
+    try {
+      await importData(pendingImport, replace);
+      setPendingImport(null);
+      await refreshHistory();
+      await refreshCollections();
+      Alert.alert("Importação concluída", "Os dados locais foram atualizados.");
+    } catch (cause) {
+      setPendingImport(null);
+      Alert.alert(
+        "Importação não realizada",
+        cause instanceof Error ? cause.message : "Arquivo inválido.",
+      );
+    }
+  };
+  const clearAllHistory = () =>
+    Alert.alert(
+      "Apagar histórico?",
+      "Os favoritos são snapshots independentes e continuarão salvos.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Apagar",
+          style: "destructive",
+          onPress: () => {
+            void clearHistory().then(() => refreshHistory());
+          },
+        },
+      ],
+    );
 
-  return <SafeAreaView style={[styles.page, { backgroundColor: c.bg }]}><StatusBar style={dark ? 'light' : 'dark'} /><KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-    <View style={styles.top}><View><Text style={[styles.kicker, { color: c.muted }]}>TRADUÇÃO PESSOAL, DIRETO AO PONTO</Text><Text style={[styles.title, { color: c.text }]}>Quick Translator</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Sobre o aplicativo" onPress={() => setTab('about')} style={[styles.about, { borderColor: c.border }]}><Text style={{ color: c.accent, fontWeight: '700' }}>i</Text></Pressable></View>
-    <View style={[styles.tabs, { backgroundColor: c.card, borderColor: c.border }]}>{tabs.map((item) => <Pressable key={item.id} accessibilityRole="tab" accessibilityState={{ selected: tab === item.id }} onPress={() => { setTab(item.id); setActiveCollection(null); }} style={[styles.tab, tab === item.id && { backgroundColor: c.accent }]}><Text numberOfLines={1} style={[styles.tabLabel, { color: tab === item.id ? '#FFFFFF' : c.muted }]}>{item.label}</Text></Pressable>)}</View>
-    {tab === 'translate' && <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
-      <View style={[styles.languageRow, { backgroundColor: c.card, borderColor: c.border }]}><Pressable onPress={() => setLanguageSide('source')} accessibilityRole="button" accessibilityLabel={`Idioma de origem: ${languageByCode(source)?.name}`} style={styles.language}><Text style={[styles.langName, { color: c.text }]}>{languageByCode(source)?.name}</Text></Pressable><Pressable onPress={swap} accessibilityRole="button" accessibilityLabel="Inverter idiomas" style={[styles.swap, { backgroundColor: c.input }]}><Text style={{ color: c.accent, fontSize: 20 }}>⇄</Text></Pressable><Pressable onPress={() => setLanguageSide('target')} accessibilityRole="button" accessibilityLabel={`Idioma de destino: ${languageByCode(target)?.name}`} style={styles.language}><Text style={[styles.langName, { color: c.text }]}>{languageByCode(target)?.name}</Text></Pressable></View>
-      <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}><View style={styles.row}><Text style={[styles.label, { color: c.muted }]}>TEXTO ORIGINAL</Text><Text style={[styles.counter, { color: c.muted }]}>{text.length}/{MAX_INPUT_LENGTH} · máx. {MAX_INPUT_BYTES} bytes</Text></View><TextInput accessibilityLabel="Texto para traduzir" value={text} onChangeText={(value) => { setText(value.slice(0, MAX_INPUT_LENGTH)); setResult(null); if (error) clearError(); }} multiline maxLength={MAX_INPUT_LENGTH} textAlignVertical="top" placeholder="Digite ou cole uma frase…" placeholderTextColor={c.muted} style={[styles.input, { color: c.text, backgroundColor: c.input }]} /><View style={styles.actions}><Pressable accessibilityRole="button" onPress={() => { setText(''); setResult(null); }}><Text style={{ color: c.accent, padding: 9 }}>Limpar</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Ouvir texto original" onPress={() => void speak(text, source)}><Text style={{ color: c.accent, padding: 9 }}>Ouvir original</Text></Pressable></View></View>
-      {error && <View><Text accessibilityRole="alert" style={[styles.error, { color: c.danger }]}>{error}</Text>{unsaved && <Pressable accessibilityRole="button" onPress={() => void retrySave()}><Text style={{ color: c.accent, paddingVertical: 8 }}>Tentar salvar no histórico</Text></Pressable>}</View>}
-      <Pressable accessibilityRole="button" accessibilityState={{ disabled: isLoading }} disabled={isLoading} onPress={() => void runTranslation()} style={[styles.translate, { backgroundColor: c.accent, opacity: isLoading ? 0.7 : 1 }]}>{isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.translateLabel}>Traduzir</Text>}</Pressable>
-      {result ? <View style={[styles.card, styles.resultCard, { backgroundColor: c.card, borderColor: c.border }]}><Text style={[styles.label, { color: c.muted }]}>TRADUÇÃO · {languageByCode(result.targetLanguage)?.name}</Text><Text selectable style={[styles.resultText, { color: c.text }]}>{result.translatedText}</Text><View style={styles.actions}><Pressable accessibilityRole="button" onPress={() => void copy(result.translatedText)}><Text style={{ color: c.accent, padding: 8 }}>Copiar</Text></Pressable><Pressable accessibilityRole="button" onPress={() => void speak(result.translatedText, result.targetLanguage)}><Text style={{ color: c.accent, padding: 8 }}>Ouvir</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel={favorite ? 'Remover dos favoritos' : 'Salvar nos favoritos'} onPress={() => void saveFavorite()}><Text style={{ color: c.accent, padding: 8 }}>{favorite ? '♥ Salvo' : '♡ Salvar'}</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Usar tradução como texto original" onPress={swap}><Text style={{ color: c.accent, padding: 8 }}>Usar</Text></Pressable></View></View> : <Text style={[styles.hint, { color: c.muted }]}>O texto enviado será processado pelo MyMemory. Favoritos e histórico ficam salvos neste dispositivo.</Text>}
-      <Text style={[styles.sectionTitle, { color: c.text }]}>Recentes</Text>{history.slice(0, 3).map((item) => <ItemRow key={item.id} item={item} c={c} onPress={() => openTranslation(item)} />)}
-    </ScrollView>}
-    {(tab === 'history' || tab === 'favorites') && <View style={styles.flex}><TextInput value={query} onChangeText={setQuery} accessibilityLabel={`Pesquisar ${tab === 'history' ? 'histórico' : 'favoritos'}`} placeholder="Pesquisar frases…" placeholderTextColor={c.muted} style={[styles.search, { backgroundColor: c.card, borderColor: c.border, color: c.text }]} />{tab === 'favorites' && <View style={styles.collectionHead}><Text style={[styles.sectionTitle, { color: c.text }]}>Coleções</Text><Pressable onPress={() => setDialog('collection')} accessibilityRole="button"><Text style={{ color: c.accent }}>+ Nova coleção</Text></Pressable></View>}{tab === 'favorites' && activeCollection && <View style={styles.collectionHead}><Text style={[styles.sectionTitle, { color: c.accent }]}>{activeCollection.name}</Text><Pressable onPress={() => confirmCollectionDelete(activeCollection)}><Text style={{ color: c.danger }}>Excluir coleção</Text></Pressable></View>}{tab === 'favorites' && !activeCollection && <ScrollView horizontal style={styles.collectionStrip}>{collections.map((collection) => <Pressable key={collection.id} onPress={() => void openCollection(collection)} onLongPress={() => Alert.alert(collection.name, 'Gerenciar coleção', [{ text: 'Cancelar', style: 'cancel' }, { text: 'Renomear', onPress: () => editCollection(collection) }, { text: 'Excluir', style: 'destructive', onPress: () => confirmCollectionDelete(collection) }])} accessibilityHint="Toque para abrir; mantenha pressionado para gerenciar" style={[styles.collectionChip, { backgroundColor: c.card, borderColor: c.border }]}><Text style={{ color: c.text }}>{collection.name}</Text></Pressable>)}</ScrollView>}<FlatList data={activeCollection ? collectionItems : items} keyExtractor={(item) => item.id} contentContainerStyle={styles.list} ListEmptyComponent={<Text style={[styles.empty, { color: c.muted }]}>{query ? 'Nenhum resultado para essa busca.' : tab === 'history' ? 'Seu histórico aparecerá aqui após uma tradução.' : 'Suas frases salvas para consulta offline aparecerão aqui.'}</Text>} renderItem={({ item }) => <ItemRow item={item} c={c} onPress={() => openTranslation(item)} actions={tab === 'favorites' ? <><Pressable onPress={() => void copy(item.sourceText)}><Text style={{ color: c.accent }}>Copiar original</Text></Pressable><Pressable onPress={() => void copy(item.translatedText)}><Text style={{ color: c.accent }}>Copiar tradução</Text></Pressable><Pressable onPress={() => void speak(item.translatedText, item.targetLanguage)}><Text style={{ color: c.accent }}>Ouvir</Text></Pressable><Pressable onPress={() => void addToCollection(item)}><Text style={{ color: c.accent }}>Coleção</Text></Pressable><Pressable onPress={() => void toggleFavorite(item).then(async () => setItems(await getFavorites(query)))}><Text style={{ color: c.danger }}>Remover favorito</Text></Pressable></> : tab === 'history' ? <Pressable onPress={() => Alert.alert('Excluir tradução?', 'Este item será removido do histórico.', [{ text: 'Cancelar', style: 'cancel' }, { text: 'Excluir', style: 'destructive', onPress: () => void deleteHistoryItem(item.id).then(() => refreshHistory(query)) }])}><Text style={{ color: c.danger }}>Excluir</Text></Pressable> : undefined} />} />{tab === 'history' && items.length > 0 && <Pressable onPress={clearAllHistory} style={[styles.footerButton, { borderColor: c.border }]}><Text style={{ color: c.danger }}>Apagar histórico</Text></Pressable>}</View>}
-    {tab === 'settings' && <ScrollView contentContainerStyle={styles.content}><Text style={[styles.sectionTitle, { color: c.text }]}>Preferências</Text><SettingRow title="Tema" detail="Claro, escuro ou conforme o sistema" action={theme === 'system' ? 'Sistema' : dark ? 'Escuro' : 'Claro'} c={c} onPress={() => { const next = theme === 'system' ? 'light' : theme === 'light' ? 'dark' : 'system'; setTheme(next); void setPreference('theme', next); }} /><SettingRow title="Idiomas padrão" detail={`${languageByCode(source)?.name} → ${languageByCode(target)?.name}`} action="Inverter" c={c} onPress={swap} /><SettingRow title="Exportar dados locais" detail="Salvar histórico, favoritos e preferências em JSON" action="Exportar" c={c} onPress={() => void exportLocal()} /><SettingRow title="Importar dados" detail="Validar JSON e mesclar ou substituir os dados" action="Importar" c={c} onPress={() => void pickImport()} /><SettingRow title="Limpar histórico" detail="Favoritos não serão apagados" action="Apagar" c={c} onPress={clearAllHistory} /><View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}><Text style={[styles.label, { color: c.muted }]}>PROVEDOR</Text><Text style={[styles.body, { color: c.text }]}>MyMemory · cota anônima documentada de 5.000 caracteres por dia. O app não solicita email. A disponibilidade pode variar.</Text></View><Pressable onPress={() => setTab('about')}><Text style={{ color: c.accent, padding: 12 }}>Sobre e privacidade</Text></Pressable></ScrollView>}
-    {tab === 'about' && <ScrollView contentContainerStyle={styles.content}><Text style={[styles.sectionTitle, { color: c.text }]}>Sobre o Quick Translator</Text><Text style={[styles.body, { color: c.text }]}>Versão 1.0.0{ '\n' }Provider: MyMemory Translation API{ '\n' }Histórico e frases favoritas são guardados localmente em SQLite e podem ser consultados sem internet. Novos textos exigem conexão.</Text><Text style={[styles.sectionTitle, { color: c.text }]}>Privacidade</Text><Text style={[styles.body, { color: c.muted }]}>Ao traduzir, o texto original e o par de idiomas são enviados ao MyMemory por HTTPS. O provedor processa a solicitação conforme seus termos. O app não envia email, favoritos ou histórico e não registra o conteúdo em logs.</Text><Text style={[styles.body, { color: c.muted }]}>Pronúncia usa vozes disponíveis no sistema; disponibilidade e comportamento variam por dispositivo. No iOS, o modo silencioso pode impedir som. Não há tradução offline de textos novos. O app não se conecta ao Galaxy Fit3.</Text><Pressable onPress={() => void Linking.openURL('https://mymemory.translated.net/terms-and-conditions').catch(() => Alert.alert('Link indisponível', 'Não foi possível abrir os termos do serviço.'))}><Text style={{ color: c.accent, paddingVertical: 16 }}>Documentação e política do provedor</Text></Pressable></ScrollView>}
-    <View style={[styles.bottom, { backgroundColor: c.card, borderColor: c.border }]}>{tabs.map((item) => <Pressable key={item.id} accessibilityRole="tab" accessibilityState={{ selected: tab === item.id }} onPress={() => { setTab(item.id); setActiveCollection(null); }} style={styles.bottomItem}><Text style={{ color: tab === item.id ? c.accent : c.muted, fontSize: 11, fontWeight: '700' }}>{item.label}</Text></Pressable>)}</View>
-  </KeyboardAvoidingView>
-  <Modal visible={languageSide !== null} animationType="slide" onRequestClose={() => setLanguageSide(null)}><SafeAreaView style={[styles.page, { backgroundColor: c.bg }]}><View style={styles.modalHead}><Text style={[styles.sectionTitle, { color: c.text }]}>Escolher idioma</Text><Pressable onPress={() => setLanguageSide(null)}><Text style={{ color: c.accent }}>Fechar</Text></Pressable></View><TextInput value={languageSearch} onChangeText={setLanguageSearch} placeholder="Pesquisar idioma" placeholderTextColor={c.muted} style={[styles.search, { backgroundColor: c.card, borderColor: c.border, color: c.text }]} /><FlatList data={LANGUAGE_OPTIONS.filter((language) => language.name.toLocaleLowerCase().includes(languageSearch.toLocaleLowerCase()))} keyExtractor={(item) => item.code} renderItem={({ item }) => <Pressable onPress={() => chooseLanguage(item)} style={[styles.languageOption, { borderColor: c.border }]}><Text style={{ color: c.text }}>{item.name}</Text></Pressable>} /></SafeAreaView></Modal>
-  <Modal visible={dialog === 'collection'} transparent animationType="fade" onRequestClose={() => setDialog(null)}><View style={styles.overlay}><View style={[styles.dialog, { backgroundColor: c.card }]}><Text style={[styles.sectionTitle, { color: c.text }]}>{editingCollection ? 'Renomear coleção' : 'Nova coleção'}</Text><TextInput value={collectionName} onChangeText={setCollectionName} placeholder="Ex.: Viagem" placeholderTextColor={c.muted} maxLength={40} style={[styles.search, { color: c.text, borderColor: c.border, backgroundColor: c.input }]} /><View style={styles.actions}><Pressable onPress={() => setDialog(null)}><Text style={{ color: c.muted, padding: 12 }}>Cancelar</Text></Pressable><Pressable onPress={() => void makeCollection()}><Text style={{ color: c.accent, padding: 12, fontWeight: '700' }}>{editingCollection ? 'Salvar' : 'Criar'}</Text></Pressable></View></View></View></Modal>
-  </SafeAreaView>;
+  return (
+    <SafeAreaView style={[styles.page, { backgroundColor: c.bg }]}>
+      <StatusBar style={dark ? "light" : "dark"} />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <View style={styles.top}>
+          <View>
+            <Text style={[styles.kicker, { color: c.muted }]}>
+              TRADUÇÃO PESSOAL, DIRETO AO PONTO
+            </Text>
+            <Text style={[styles.title, { color: c.text }]}>
+              Quick Translator
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Sobre o aplicativo"
+            onPress={() => setTab("about")}
+            style={[styles.about, { borderColor: c.border }]}
+          >
+            <Text style={{ color: c.accent, fontWeight: "700" }}>i</Text>
+          </Pressable>
+        </View>
+        <View
+          style={[
+            styles.tabs,
+            { backgroundColor: c.card, borderColor: c.border },
+          ]}
+        >
+          {tabs.map((item) => (
+            <Pressable
+              key={item.id}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: tab === item.id }}
+              onPress={() => {
+                setTab(item.id);
+                setActiveCollection(null);
+              }}
+              style={[
+                styles.tab,
+                tab === item.id && { backgroundColor: c.accent },
+              ]}
+            >
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.tabLabel,
+                  { color: tab === item.id ? "#FFFFFF" : c.muted },
+                ]}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        {tab === "translate" && (
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.content}
+          >
+            <View
+              style={[
+                styles.languageRow,
+                { backgroundColor: c.card, borderColor: c.border },
+              ]}
+            >
+              <Pressable
+                onPress={() => setLanguageSide("source")}
+                accessibilityRole="button"
+                accessibilityLabel={`Idioma de origem: ${languageByCode(source)?.name}`}
+                style={styles.language}
+              >
+                <Text style={[styles.langName, { color: c.text }]}>
+                  {languageByCode(source)?.name}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={swap}
+                accessibilityRole="button"
+                accessibilityLabel="Inverter idiomas"
+                style={[styles.swap, { backgroundColor: c.input }]}
+              >
+                <Text style={{ color: c.accent, fontSize: 20 }}>⇄</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setLanguageSide("target")}
+                accessibilityRole="button"
+                accessibilityLabel={`Idioma de destino: ${languageByCode(target)?.name}`}
+                style={styles.language}
+              >
+                <Text style={[styles.langName, { color: c.text }]}>
+                  {languageByCode(target)?.name}
+                </Text>
+              </Pressable>
+            </View>
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: c.card, borderColor: c.border },
+              ]}
+            >
+              <View style={styles.row}>
+                <Text style={[styles.label, { color: c.muted }]}>
+                  TEXTO ORIGINAL
+                </Text>
+                <Text style={[styles.counter, { color: c.muted }]}>
+                  {text.length}/{MAX_INPUT_LENGTH} · máx. {MAX_INPUT_BYTES}{" "}
+                  bytes
+                </Text>
+              </View>
+              <TextInput
+                accessibilityLabel="Texto para traduzir"
+                value={text}
+                onChangeText={(value) => {
+                  setText(value.slice(0, MAX_INPUT_LENGTH));
+                  setResult(null);
+                  if (error) clearError();
+                }}
+                multiline
+                maxLength={MAX_INPUT_LENGTH}
+                textAlignVertical="top"
+                placeholder="Digite ou cole uma frase…"
+                placeholderTextColor={c.muted}
+                style={[
+                  styles.input,
+                  { color: c.text, backgroundColor: c.input },
+                ]}
+              />
+              <View style={styles.actions}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setText("");
+                    setResult(null);
+                  }}
+                >
+                  <Text style={{ color: c.accent, padding: 9 }}>Limpar</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Ouvir texto original"
+                  onPress={() => void speak(text, source)}
+                >
+                  <Text style={{ color: c.accent, padding: 9 }}>
+                    Ouvir original
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+            {error && (
+              <View>
+                <Text
+                  accessibilityRole="alert"
+                  style={[styles.error, { color: c.danger }]}
+                >
+                  {error}
+                </Text>
+                {unsaved && (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => void retrySave()}
+                  >
+                    <Text style={{ color: c.accent, paddingVertical: 8 }}>
+                      Tentar salvar no histórico
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+            )}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isLoading }}
+              disabled={isLoading}
+              onPress={() => void runTranslation()}
+              style={[
+                styles.translate,
+                { backgroundColor: c.accent, opacity: isLoading ? 0.7 : 1 },
+              ]}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.translateLabel}>Traduzir</Text>
+              )}
+            </Pressable>
+            {result ? (
+              <View
+                style={[
+                  styles.card,
+                  styles.resultCard,
+                  { backgroundColor: c.card, borderColor: c.border },
+                ]}
+              >
+                <Text style={[styles.label, { color: c.muted }]}>
+                  TRADUÇÃO · {languageByCode(result.targetLanguage)?.name}
+                </Text>
+                <Text selectable style={[styles.resultText, { color: c.text }]}>
+                  {result.translatedText}
+                </Text>
+                <View style={styles.actions}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => void copy(result.translatedText)}
+                  >
+                    <Text style={{ color: c.accent, padding: 8 }}>Copiar</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() =>
+                      void speak(result.translatedText, result.targetLanguage)
+                    }
+                  >
+                    <Text style={{ color: c.accent, padding: 8 }}>Ouvir</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      favorite
+                        ? "Remover dos favoritos"
+                        : "Salvar nos favoritos"
+                    }
+                    onPress={() => void saveFavorite()}
+                  >
+                    <Text style={{ color: c.accent, padding: 8 }}>
+                      {favorite ? "♥ Salvo" : "♡ Salvar"}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Usar tradução como texto original"
+                    onPress={swap}
+                  >
+                    <Text style={{ color: c.accent, padding: 8 }}>Usar</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <Text style={[styles.hint, { color: c.muted }]}>
+                O texto enviado será processado pelo MyMemory. Favoritos e
+                histórico ficam salvos neste dispositivo.
+              </Text>
+            )}
+            <Text style={[styles.sectionTitle, { color: c.text }]}>
+              Recentes
+            </Text>
+            {history.slice(0, 3).map((item) => (
+              <ItemRow
+                key={item.id}
+                item={item}
+                c={c}
+                onPress={() => openTranslation(item)}
+              />
+            ))}
+          </ScrollView>
+        )}
+        {(tab === "history" || tab === "favorites") && (
+          <View style={styles.flex}>
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              accessibilityLabel={`Pesquisar ${tab === "history" ? "histórico" : "favoritos"}`}
+              placeholder="Pesquisar frases…"
+              placeholderTextColor={c.muted}
+              style={[
+                styles.search,
+                {
+                  backgroundColor: c.card,
+                  borderColor: c.border,
+                  color: c.text,
+                },
+              ]}
+            />
+            {tab === "favorites" && (
+              <View style={styles.collectionHead}>
+                <Text style={[styles.sectionTitle, { color: c.text }]}>
+                  Coleções
+                </Text>
+                <Pressable
+                  onPress={() => setDialog("collection")}
+                  accessibilityRole="button"
+                >
+                  <Text style={{ color: c.accent }}>+ Nova coleção</Text>
+                </Pressable>
+              </View>
+            )}
+            {tab === "favorites" && activeCollection && (
+              <View style={styles.collectionHead}>
+                <Text style={[styles.sectionTitle, { color: c.accent }]}>
+                  {activeCollection.name}
+                </Text>
+                <Pressable
+                  onPress={() => confirmCollectionDelete(activeCollection)}
+                >
+                  <Text style={{ color: c.danger }}>Excluir coleção</Text>
+                </Pressable>
+              </View>
+            )}
+            {tab === "favorites" && !activeCollection && (
+              <ScrollView horizontal style={styles.collectionStrip}>
+                {collections.map((collection) => (
+                  <Pressable
+                    key={collection.id}
+                    onPress={() => void openCollection(collection)}
+                    onLongPress={() =>
+                      Alert.alert(collection.name, "Gerenciar coleção", [
+                        { text: "Cancelar", style: "cancel" },
+                        {
+                          text: "Renomear",
+                          onPress: () => editCollection(collection),
+                        },
+                        {
+                          text: "Excluir",
+                          style: "destructive",
+                          onPress: () => confirmCollectionDelete(collection),
+                        },
+                      ])
+                    }
+                    accessibilityHint="Toque para abrir; mantenha pressionado para gerenciar"
+                    style={[
+                      styles.collectionChip,
+                      { backgroundColor: c.card, borderColor: c.border },
+                    ]}
+                  >
+                    <Text style={{ color: c.text }}>{collection.name}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )}
+            <FlatList
+              data={activeCollection ? collectionItems : items}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.list}
+              ListEmptyComponent={
+                <Text style={[styles.empty, { color: c.muted }]}>
+                  {query
+                    ? "Nenhum resultado para essa busca."
+                    : tab === "history"
+                      ? "Seu histórico aparecerá aqui após uma tradução."
+                      : "Suas frases salvas para consulta offline aparecerão aqui."}
+                </Text>
+              }
+              renderItem={({ item }) => (
+                <ItemRow
+                  item={item}
+                  c={c}
+                  onPress={() => openTranslation(item)}
+                  actions={
+                    tab === "favorites" ? (
+                      <>
+                        <Pressable onPress={() => void copy(item.sourceText)}>
+                          <Text style={{ color: c.accent }}>
+                            Copiar original
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => void copy(item.translatedText)}
+                        >
+                          <Text style={{ color: c.accent }}>
+                            Copiar tradução
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() =>
+                            void speak(item.translatedText, item.targetLanguage)
+                          }
+                        >
+                          <Text style={{ color: c.accent }}>Ouvir</Text>
+                        </Pressable>
+                        <Pressable onPress={() => void addToCollection(item)}>
+                          <Text style={{ color: c.accent }}>Coleção</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() =>
+                            void toggleFavorite(item).then(async () =>
+                              setItems(await getFavorites(query)),
+                            )
+                          }
+                        >
+                          <Text style={{ color: c.danger }}>
+                            Remover favorito
+                          </Text>
+                        </Pressable>
+                      </>
+                    ) : tab === "history" ? (
+                      <Pressable
+                        onPress={() =>
+                          Alert.alert(
+                            "Excluir tradução?",
+                            "Este item será removido do histórico.",
+                            [
+                              { text: "Cancelar", style: "cancel" },
+                              {
+                                text: "Excluir",
+                                style: "destructive",
+                                onPress: () =>
+                                  void deleteHistoryItem(item.id).then(() =>
+                                    refreshHistory(query),
+                                  ),
+                              },
+                            ],
+                          )
+                        }
+                      >
+                        <Text style={{ color: c.danger }}>Excluir</Text>
+                      </Pressable>
+                    ) : undefined
+                  }
+                />
+              )}
+            />
+            {tab === "history" && items.length > 0 && (
+              <Pressable
+                onPress={clearAllHistory}
+                style={[styles.footerButton, { borderColor: c.border }]}
+              >
+                <Text style={{ color: c.danger }}>Apagar histórico</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+        {tab === "settings" && (
+          <ScrollView contentContainerStyle={styles.content}>
+            <Text style={[styles.sectionTitle, { color: c.text }]}>
+              Preferências
+            </Text>
+            <SettingRow
+              title="Tema"
+              detail="Claro, escuro ou conforme o sistema"
+              action={
+                theme === "system" ? "Sistema" : dark ? "Escuro" : "Claro"
+              }
+              c={c}
+              onPress={() => {
+                const next =
+                  theme === "system"
+                    ? "light"
+                    : theme === "light"
+                      ? "dark"
+                      : "system";
+                setTheme(next);
+                void setPreference("theme", next);
+              }}
+            />
+            <SettingRow
+              title="Idiomas padrão"
+              detail={`${languageByCode(source)?.name} → ${languageByCode(target)?.name}`}
+              action="Inverter"
+              c={c}
+              onPress={swap}
+            />
+            <SettingRow
+              title="Exportar dados locais"
+              detail="Salvar histórico, favoritos e preferências em JSON"
+              action="Exportar"
+              c={c}
+              onPress={() => void exportLocal()}
+            />
+            <SettingRow
+              title="Importar dados"
+              detail="Validar JSON e mesclar ou substituir os dados"
+              action="Importar"
+              c={c}
+              onPress={() => void pickImport()}
+            />
+            <SettingRow
+              title="Limpar histórico"
+              detail="Favoritos não serão apagados"
+              action="Apagar"
+              c={c}
+              onPress={clearAllHistory}
+            />
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: c.card, borderColor: c.border },
+              ]}
+            >
+              <Text style={[styles.label, { color: c.muted }]}>PROVEDOR</Text>
+              <Text style={[styles.body, { color: c.text }]}>
+                MyMemory · cota anônima documentada de 5.000 caracteres por dia.
+                O app não solicita email. A disponibilidade pode variar.
+              </Text>
+            </View>
+            <Pressable onPress={() => setTab("about")}>
+              <Text style={{ color: c.accent, padding: 12 }}>
+                Sobre e privacidade
+              </Text>
+            </Pressable>
+          </ScrollView>
+        )}
+        {tab === "about" && (
+          <ScrollView contentContainerStyle={styles.content}>
+            <Text style={[styles.sectionTitle, { color: c.text }]}>
+              Sobre o Quick Translator
+            </Text>
+            <Text style={[styles.body, { color: c.text }]}>
+              Versão 1.0.0{"\n"}Provider: MyMemory Translation API{"\n"}
+              Histórico e frases favoritas são guardados localmente em SQLite e
+              podem ser consultados sem internet. Novos textos exigem conexão.
+            </Text>
+            <Text style={[styles.sectionTitle, { color: c.text }]}>
+              Privacidade
+            </Text>
+            <Text style={[styles.body, { color: c.muted }]}>
+              Ao traduzir, o texto original e o par de idiomas são enviados ao
+              MyMemory por HTTPS. O provedor processa a solicitação conforme
+              seus termos. O app não envia email, favoritos ou histórico e não
+              registra o conteúdo em logs.
+            </Text>
+            <Text style={[styles.body, { color: c.muted }]}>
+              Pronúncia usa vozes disponíveis no sistema; disponibilidade e
+              comportamento variam por dispositivo. No iOS, o modo silencioso
+              pode impedir som. Não há tradução offline de textos novos. O app
+              não se conecta ao Galaxy Fit3.
+            </Text>
+            <Pressable
+              onPress={() =>
+                void Linking.openURL(
+                  "https://mymemory.translated.net/terms-and-conditions",
+                ).catch(() =>
+                  Alert.alert(
+                    "Link indisponível",
+                    "Não foi possível abrir os termos do serviço.",
+                  ),
+                )
+              }
+            >
+              <Text style={{ color: c.accent, paddingVertical: 16 }}>
+                Documentação e política do provedor
+              </Text>
+            </Pressable>
+          </ScrollView>
+        )}
+        <View
+          style={[
+            styles.bottom,
+            { backgroundColor: c.card, borderColor: c.border },
+          ]}
+        >
+          {tabs.map((item) => (
+            <Pressable
+              key={item.id}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: tab === item.id }}
+              onPress={() => {
+                setTab(item.id);
+                setActiveCollection(null);
+              }}
+              style={styles.bottomItem}
+            >
+              <Text
+                style={{
+                  color: tab === item.id ? c.accent : c.muted,
+                  fontSize: 11,
+                  fontWeight: "700",
+                }}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </KeyboardAvoidingView>
+      <Modal
+        visible={languageSide !== null}
+        animationType="slide"
+        onRequestClose={() => setLanguageSide(null)}
+      >
+        <SafeAreaView style={[styles.page, { backgroundColor: c.bg }]}>
+          <View style={styles.modalHead}>
+            <Text style={[styles.sectionTitle, { color: c.text }]}>
+              Escolher idioma
+            </Text>
+            <Pressable onPress={() => setLanguageSide(null)}>
+              <Text style={{ color: c.accent }}>Fechar</Text>
+            </Pressable>
+          </View>
+          <TextInput
+            value={languageSearch}
+            onChangeText={setLanguageSearch}
+            placeholder="Pesquisar idioma"
+            placeholderTextColor={c.muted}
+            style={[
+              styles.search,
+              { backgroundColor: c.card, borderColor: c.border, color: c.text },
+            ]}
+          />
+          <FlatList
+            data={LANGUAGE_OPTIONS.filter((language) =>
+              language.name
+                .toLocaleLowerCase()
+                .includes(languageSearch.toLocaleLowerCase()),
+            )}
+            keyExtractor={(item) => item.code}
+            renderItem={({ item }) => (
+              <Pressable
+                onPress={() => chooseLanguage(item)}
+                style={[styles.languageOption, { borderColor: c.border }]}
+              >
+                <Text style={{ color: c.text }}>{item.name}</Text>
+              </Pressable>
+            )}
+          />
+        </SafeAreaView>
+      </Modal>
+      <Modal
+        visible={dialog === "collection"}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDialog(null)}
+      >
+        <View style={styles.overlay}>
+          <View style={[styles.dialog, { backgroundColor: c.card }]}>
+            <Text style={[styles.sectionTitle, { color: c.text }]}>
+              {editingCollection ? "Renomear coleção" : "Nova coleção"}
+            </Text>
+            <TextInput
+              value={collectionName}
+              onChangeText={setCollectionName}
+              placeholder="Ex.: Viagem"
+              placeholderTextColor={c.muted}
+              maxLength={40}
+              style={[
+                styles.search,
+                {
+                  color: c.text,
+                  borderColor: c.border,
+                  backgroundColor: c.input,
+                },
+              ]}
+            />
+            <View style={styles.actions}>
+              <Pressable onPress={() => setDialog(null)}>
+                <Text style={{ color: c.muted, padding: 12 }}>Cancelar</Text>
+              </Pressable>
+              <Pressable onPress={() => void makeCollection()}>
+                <Text
+                  style={{ color: c.accent, padding: 12, fontWeight: "700" }}
+                >
+                  {editingCollection ? "Salvar" : "Criar"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  );
 }
 
-function ItemRow({ item, c, onPress, actions }: { item: TranslationHistoryItem; c: typeof palette.light; onPress: () => void; actions?: ReactNode }) { return <View style={[styles.item, { backgroundColor: c.card, borderColor: c.border }]}><Pressable onPress={onPress} accessibilityRole="button" style={styles.itemMain}><Text style={[styles.itemLanguages, { color: c.muted }]}>{languageByCode(item.sourceLanguage)?.name ?? item.sourceLanguage} → {languageByCode(item.targetLanguage)?.name ?? item.targetLanguage}</Text><Text numberOfLines={2} style={[styles.itemSource, { color: c.text }]}>{item.sourceText}</Text><Text numberOfLines={2} style={[styles.itemTranslation, { color: c.muted }]}>{item.translatedText}</Text></Pressable>{actions && <View style={styles.itemActions}>{actions}</View>}</View>; }
-function SettingRow({ title, detail, action, c, onPress }: { title: string; detail: string; action: string; c: typeof palette.light; onPress: () => void }) { return <Pressable onPress={onPress} accessibilityRole="button" style={[styles.settingRow, { backgroundColor: c.card, borderColor: c.border }]}><View style={styles.flex}><Text style={{ color: c.text, fontWeight: '700' }}>{title}</Text><Text style={{ color: c.muted, fontSize: 12, marginTop: 4 }}>{detail}</Text></View><Text style={{ color: c.accent, fontWeight: '700' }}>{action}</Text></Pressable>; }
-const styles = StyleSheet.create({ page: { flex: 1 }, flex: { flex: 1 }, top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 9, paddingBottom: 15 }, kicker: { fontSize: 9, letterSpacing: 1.2, fontWeight: '800' }, title: { fontSize: 23, fontWeight: '800', marginTop: 4 }, about: { width: 38, height: 38, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }, tabs: { flexDirection: 'row', marginHorizontal: 16, padding: 4, borderWidth: 1, borderRadius: 15, marginBottom: 10 }, tab: { flex: 1, minHeight: 40, borderRadius: 11, justifyContent: 'center', alignItems: 'center' }, tabLabel: { fontSize: 11, fontWeight: '700' }, content: { paddingHorizontal: 16, paddingBottom: 24 }, languageRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 17, padding: 7, marginBottom: 12 }, language: { flex: 1, minHeight: 48, justifyContent: 'center', alignItems: 'center' }, langName: { fontWeight: '700', fontSize: 14 }, swap: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }, card: { borderWidth: 1, borderRadius: 18, padding: 15, marginBottom: 12 }, row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, label: { fontSize: 10, fontWeight: '800', letterSpacing: 1 }, counter: { fontSize: 9 }, input: { minHeight: 115, borderRadius: 12, padding: 12, marginTop: 12, fontSize: 16, lineHeight: 23 }, actions: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', marginTop: 5 }, translate: { minHeight: 53, borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginBottom: 12 }, translateLabel: { color: '#FFF', fontWeight: '800', fontSize: 15 }, error: { marginVertical: 8, fontSize: 13 }, resultCard: { marginTop: 1 }, resultText: { fontSize: 20, lineHeight: 29, fontWeight: '700', marginTop: 13 }, hint: { fontSize: 11, lineHeight: 17, paddingHorizontal: 4, marginBottom: 16 }, sectionTitle: { fontSize: 18, fontWeight: '800', marginTop: 15, marginBottom: 9 }, item: { borderWidth: 1, borderRadius: 15, padding: 13, marginBottom: 9 }, itemMain: { minHeight: 60 }, itemLanguages: { fontSize: 10, marginBottom: 5 }, itemSource: { fontSize: 13, fontWeight: '700' }, itemTranslation: { fontSize: 12, marginTop: 4 }, itemActions: { flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, borderTopWidth: 1, borderTopColor: '#8883', marginTop: 11, paddingTop: 10 }, search: { margin: 16, marginBottom: 8, borderWidth: 1, borderRadius: 13, paddingHorizontal: 13, minHeight: 46 }, list: { paddingHorizontal: 16, paddingBottom: 15 }, empty: { textAlign: 'center', padding: 28, lineHeight: 20 }, footerButton: { margin: 16, padding: 13, borderWidth: 1, borderRadius: 13, alignItems: 'center' }, collectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16 }, collectionStrip: { maxHeight: 48, paddingHorizontal: 12 }, collectionChip: { paddingHorizontal: 14, justifyContent: 'center', marginHorizontal: 4, borderRadius: 16, borderWidth: 1 }, settingRow: { flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: 9 }, body: { fontSize: 14, lineHeight: 22, marginTop: 9, marginBottom: 15 }, bottom: { flexDirection: 'row', justifyContent: 'space-around', minHeight: 53, borderTopWidth: 1, alignItems: 'center' }, bottomItem: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 48 }, modalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20 }, languageOption: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 20, borderBottomWidth: StyleSheet.hairlineWidth }, overlay: { flex: 1, backgroundColor: '#0008', justifyContent: 'center', padding: 24 }, dialog: { borderRadius: 17, padding: 18 } });
+function ItemRow({
+  item,
+  c,
+  onPress,
+  actions,
+}: {
+  item: TranslationHistoryItem;
+  c: typeof palette.light;
+  onPress: () => void;
+  actions?: ReactNode;
+}) {
+  return (
+    <View
+      style={[styles.item, { backgroundColor: c.card, borderColor: c.border }]}
+    >
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        style={styles.itemMain}
+      >
+        <Text style={[styles.itemLanguages, { color: c.muted }]}>
+          {languageByCode(item.sourceLanguage)?.name ?? item.sourceLanguage} →{" "}
+          {languageByCode(item.targetLanguage)?.name ?? item.targetLanguage}
+        </Text>
+        <Text numberOfLines={2} style={[styles.itemSource, { color: c.text }]}>
+          {item.sourceText}
+        </Text>
+        <Text
+          numberOfLines={2}
+          style={[styles.itemTranslation, { color: c.muted }]}
+        >
+          {item.translatedText}
+        </Text>
+      </Pressable>
+      {actions && <View style={styles.itemActions}>{actions}</View>}
+    </View>
+  );
+}
+function SettingRow({
+  title,
+  detail,
+  action,
+  c,
+  onPress,
+}: {
+  title: string;
+  detail: string;
+  action: string;
+  c: typeof palette.light;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={[
+        styles.settingRow,
+        { backgroundColor: c.card, borderColor: c.border },
+      ]}
+    >
+      <View style={styles.flex}>
+        <Text style={{ color: c.text, fontWeight: "700" }}>{title}</Text>
+        <Text style={{ color: c.muted, fontSize: 12, marginTop: 4 }}>
+          {detail}
+        </Text>
+      </View>
+      <Text style={{ color: c.accent, fontWeight: "700" }}>{action}</Text>
+    </Pressable>
+  );
+}
+const styles = StyleSheet.create({
+  page: { flex: 1 },
+  flex: { flex: 1 },
+  top: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 9,
+    paddingBottom: 15,
+  },
+  kicker: { fontSize: 9, letterSpacing: 1.2, fontWeight: "800" },
+  title: { fontSize: 23, fontWeight: "800", marginTop: 4 },
+  about: {
+    width: 38,
+    height: 38,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabs: {
+    flexDirection: "row",
+    marginHorizontal: 16,
+    padding: 4,
+    borderWidth: 1,
+    borderRadius: 15,
+    marginBottom: 10,
+  },
+  tab: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: 11,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  tabLabel: { fontSize: 11, fontWeight: "700" },
+  content: { paddingHorizontal: 16, paddingBottom: 24 },
+  languageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 17,
+    padding: 7,
+    marginBottom: 12,
+  },
+  language: {
+    flex: 1,
+    minHeight: 48,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  langName: { fontWeight: "700", fontSize: 14 },
+  swap: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  card: { borderWidth: 1, borderRadius: 18, padding: 15, marginBottom: 12 },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  label: { fontSize: 10, fontWeight: "800", letterSpacing: 1 },
+  counter: { fontSize: 9 },
+  input: {
+    minHeight: 115,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 12,
+    fontSize: 16,
+    lineHeight: 23,
+  },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    marginTop: 5,
+  },
+  translate: {
+    minHeight: 53,
+    borderRadius: 15,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  translateLabel: { color: "#FFF", fontWeight: "800", fontSize: 15 },
+  error: { marginVertical: 8, fontSize: 13 },
+  resultCard: { marginTop: 1 },
+  resultText: {
+    fontSize: 20,
+    lineHeight: 29,
+    fontWeight: "700",
+    marginTop: 13,
+  },
+  hint: {
+    fontSize: 11,
+    lineHeight: 17,
+    paddingHorizontal: 4,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    marginTop: 15,
+    marginBottom: 9,
+  },
+  item: { borderWidth: 1, borderRadius: 15, padding: 13, marginBottom: 9 },
+  itemMain: { minHeight: 60 },
+  itemLanguages: { fontSize: 10, marginBottom: 5 },
+  itemSource: { fontSize: 13, fontWeight: "700" },
+  itemTranslation: { fontSize: 12, marginTop: 4 },
+  itemActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#8883",
+    marginTop: 11,
+    paddingTop: 10,
+  },
+  search: {
+    margin: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderRadius: 13,
+    paddingHorizontal: 13,
+    minHeight: 46,
+  },
+  list: { paddingHorizontal: 16, paddingBottom: 15 },
+  empty: { textAlign: "center", padding: 28, lineHeight: 20 },
+  footerButton: {
+    margin: 16,
+    padding: 13,
+    borderWidth: 1,
+    borderRadius: 13,
+    alignItems: "center",
+  },
+  collectionHead: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  collectionStrip: { maxHeight: 48, paddingHorizontal: 12 },
+  collectionChip: {
+    paddingHorizontal: 14,
+    justifyContent: "center",
+    marginHorizontal: 4,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  settingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 9,
+  },
+  body: { fontSize: 14, lineHeight: 22, marginTop: 9, marginBottom: 15 },
+  bottom: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    minHeight: 53,
+    borderTopWidth: 1,
+    alignItems: "center",
+  },
+  bottomItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 48,
+  },
+  modalHead: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  languageOption: {
+    minHeight: 52,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "#0008",
+    justifyContent: "center",
+    padding: 24,
+  },
+  dialog: { borderRadius: 17, padding: 18 },
+});
