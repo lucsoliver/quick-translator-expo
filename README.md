@@ -59,4 +59,4 @@ Na primeira abertura após atualizar a versão que usava AsyncStorage, o histór
 
 ## Voz e limitações
 
-`expo-speech` usa as vozes instaladas no sistema; disponibilidade e pronúncia variam por plataforma e idioma. Em dispositivos iOS, o modo silencioso pode impedir o áudio. O app não solicita microfone, câmera, localização ou contatos. Não há login, modelo de tradução offline, sincronização, nem integração com Galaxy Fit3.
+`expo-speech` usa as vozes instaladas no sistema; disponibilidade e pronúncia variam por plataforma e idioma. Em dispositivos iOS, o modo silencioso pode impedir o áudio. O app não solicita microfone, câmera, localização ou contatos.
