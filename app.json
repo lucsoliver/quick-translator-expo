@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Quick Translator",
+    "slug": "quick-translator",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#F5F6F8"
+    },
+    "android": {
+      "package": "com.quicktranslator.app"
+    },
+    "ios": {
+      "bundleIdentifier": "com.quicktranslator.app"
+    },
+    "plugins": [
+      "expo-sqlite",
+      "expo-router",
+      "expo-sharing"
+    ]
+  }
+}
